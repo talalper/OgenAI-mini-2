@@ -20,7 +20,7 @@ export async function analyzeWithAI({ text, existingTasks = [] }) {
  };
 
  try {
-   const response = await fetch("/.netlify/functions/ai", {
+   const response = await fetch("/api/ai", {
      method: "POST",
      headers: {
        "Content-Type": "application/json"
