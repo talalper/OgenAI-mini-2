@@ -772,7 +772,6 @@ textarea::placeholder {
   font-family: 'Secular One', sans-serif;
   white-space: nowrap;
 }
-
 /* ========================================== */
 /* 📱 התאמות למסכים קטנים (טלפונים ניידים) */
 /* ========================================== */
@@ -781,21 +780,45 @@ textarea::placeholder {
   /* מונע מהתגיות להימחץ או לצאת מגבולות המסך ומאפשר להן לרדת שורה */
   .task-details-chips {
     display: flex !important;
-    flex-wrap: wrap !important; /* מאפשר גלישה שורה אסתטית */
-    gap: 6px !important; /* ריווח נקי בין התגיות */
+    flex-wrap: wrap !important;
+    gap: 6px !important;
     margin-top: 6px !important;
   }
 
   /* התאמת גודל התגיות למסך הקטן של הטלפון */
   .info-chip, .date-chip {
-    font-size: 0.8rem !important; /* טיפה יותר קטן כדי שלא יתפוס חצי מסך */
-    padding: 4px 8px !important; /* ריווח פנימי נעים */
-    white-space: nowrap !important; /* מונע מהטקסט של התגית להישבר באמצע המילה */
+    font-size: 0.8rem !important;
+    padding: 4px 8px !important;
+    white-space: nowrap !important;
   }
 
-  /* כיווץ קל של כרטיסיית המשימה כולה כדי להרוויח מקום */
+  /* --- תיקון למבנה הכרטיסייה והכפתורים --- */
+  
+  /* 1. כרטיסיית המשימה תישאר תמיד בשורה אחת (לא נשברת) */
   .task-view-card {
+    display: flex !important;
+    flex-wrap: nowrap !important; 
+    align-items: center !important; 
     padding: 12px 10px !important;
-    gap: 10px !important;
+    gap: 8px !important;
+  }
+
+  /* 2. אזור הטקסט באמצע תופס את המקום הפנוי, אך לא דוחף החוצה */
+  .task-view-card > div:nth-child(2) {
+    flex: 1 1 auto !important;
+    min-width: 0 !important; /* קריטי: מאפשר לטקסט לרדת שורה מבלי לדחוף את הכפתורים החוצה */
+  }
+
+  /* 3. מונע מהצ'קבוקס והכפתורים להתכווץ בגלל טקסט ארוך */
+  .task-checkbox, .card-actions-column {
+    flex-shrink: 0 !important;
+  }
+
+  /* 4. עמודת הכפתורים נדחפת שמאלה לגמרי */
+  .card-actions-column {
+    display: flex !important;
+    flex-direction: column !important; /* כפתור מתחת לכפתור */
+    gap: 12px !important; /* רווח נעים בין העיפרון לפח */
+    margin-right: auto !important; /* "הקסם" שדוחף אותם הכי שמאלה שיש */
   }
 }
