@@ -772,3 +772,46 @@ textarea::placeholder {
   font-family: 'Secular One', sans-serif;
   white-space: nowrap;
 }
+/* ========================================== */
+/* 📱 התאמות למסכים קטנים (טלפונים ניידים) */
+/* ========================================== */
+@media (max-width: 600px) {
+  
+  /* ריווח פנימי קצת יותר עדין לכרטיסיה עצמה */
+  .task-item, .task-card {
+    padding: 14px 12px;
+  }
+
+  /* גורם לנתונים (זמן, קטגוריה, דחיפות) לרדת שורה בצורה מסודרת במקום להימעך */
+  .task-meta {
+    display: flex;
+    flex-wrap: wrap; /* זה הקסם שנותן להם לרדת שורה */
+    gap: 6px 12px; /* ריווח נעים בין השורות והפריטים */
+    justify-content: flex-start;
+    line-height: 1.5;
+    margin-bottom: 8px;
+  }
+
+  /* סידור התאריכים (ביצוע ויעד) שלא יעלו אחד על השני */
+  .task-dates {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 8px;
+    justify-content: flex-start;
+  }
+
+  .date-badge {
+    font-size: 0.85rem; /* טיפה יותר קטן כדי שישב יפה במסך */
+    padding: 4px 10px;
+    margin: 0; /* מאפס שוליים מוזרים אם היו */
+  }
+
+  /* כפתורי הפעולה (עריכה/פח) יסתדרו יפה למטה */
+  .task-actions {
+    margin-top: 12px;
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+  }
+}
