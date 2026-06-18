@@ -1,6 +1,5 @@
 import OpenAI from "openai";
 
-// תיקון שם המודל לגרסה הקיימת והמהירה של OpenAI
 const MODEL = process.env.OPENAI_MODEL || "gpt-4o-mini";
 
 const CATEGORIES = [
@@ -14,9 +13,11 @@ const ACTION_WORDS = [
   "מייל", "גן", "בית ספר"
 ];
 
-// הדרך הנכונה לכתוב פונקציית שרת ב-Vercel
+// ==========================================
+// פונקציית השרת המרכזית (מותאמת ל-Vercel)
+// ==========================================
 export default async function handler(req, res) {
-  // הגדרות CORS (מאפשר לפרונטאנד לדבר עם השרת)
+  // הגדרות CORS
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
@@ -29,7 +30,6 @@ export default async function handler(req, res) {
     return res.status(405).json({ ok: false, error: "Only POST requests are supported." });
   }
 
-  // ב-Vercel לא צריך לעשות JSON.parse, זה קורה אוטומטית
   const body = req.body || {};
   const text = cleanText(body.text);
   const existingTasks = Array.isArray(body.existingTasks) ? body.existingTasks : [];
@@ -66,7 +66,6 @@ export default async function handler(req, res) {
 
     const prompt = buildPrompt({ text, today, dayOfWeek, defaultDueDate, existingTasks });
 
-    // השימוש הנכון בפונקציה של OpenAI החדשה
     const response = await client.chat.completions.create({
       model: MODEL,
       temperature: 0.1,
@@ -82,7 +81,6 @@ export default async function handler(req, res) {
       ]
     });
 
-    // הדרך הנכונה לחלץ את הטקסט מהתשובה
     const rawOutput = response.choices[0].message.content || "";
     const parsed = parseJsonFromModel(rawOutput);
     const normalizedTasks = normalizeTasks(parsed.tasks || [], existingTasks, today, defaultDueDate);
@@ -112,9 +110,8 @@ export default async function handler(req, res) {
 }
 
 // ==========================================
-// פונקציות העזר שלך - נשארו בדיוק כמו שהיו!
+// בניית הפרומפט (עם חוק התאריכים הנוקשה)
 // ==========================================
-
 function buildPrompt({ text, today, dayOfWeek, defaultDueDate, existingTasks }) {
   const tomorrow = addDaysIso(today, 1);
   const tomorrowDueDate = addDaysIso(tomorrow, 7);
@@ -150,7 +147,7 @@ ${text}
 תאריך היום הנוכחי קלנדרית:
 ${today} (${dayOfWeek})
 
-תאריך יעד ברירת מחדל:
+תאריך יעד ברירת מחדל (לסיום המשימה, לא לביצוע):
 ${defaultDueDate}
 
 קטגוריות אפשריות:
@@ -166,26 +163,25 @@ ${existingTasksText}
 3. אל תמציא משימות שלא מופיעות בטקסט.
 
 חוקי פיצול וזיהוי פעלים:
-4. חובה להפריד משימות מחוברות: אם מופיעה מילת חיבור (כמו "ו" החיבור, "וגם", "אז") לפני פעולה נוספת, או לפני שם עצם עצמאי שמייצג נושא חדש, חובה עליך ליצור משימות נפרדות לחלוטין!
+4. חובה להפריד משימות מחוברות: אם מופיעה מילת חיבור (כמו "ו" החיבור, "וגם", "אז") לפני פעולה נוספת, חובה עליך ליצור משימות נפרדות לחלוטין!
 5. זיהוי פעלים רחב: כל שם פועל בעברית מייצג משימה נפרדת.
 6. רק אם פעולה אחת כוללת כמה פריטים מאותו סוג, אל תפצל (למשל "לקנות חלב ולחם").
 
 חוקי שדות, תאריכים ושעות:
-7. זיהוי שעות חכם: אם מופיעה שעה בטקסט (גם במילים או כמספר בודד), חלץ אותה והמר אותה לפורמט HH:MM בשעון 24 שעות והכנס לשדה time. 
-8. אם השעה קטנה מ-8 (למשל "ב 4"), הנח שמדובר באחר הצהריים והחזר תמיד בפורמט עשרים וארבע שעות (למשל 16:00).
+7. זיהוי שעות חכם: אם מופיעה שעה בטקסט, חלץ והמר לפורמט HH:MM.
+8. ברירת מחדל לתאריכים (קריטי!): אם המשתמשת לא ציינה במפורש מתי *לבצע* את המשימה (לא ציינה מילת זמן כמו "מחר" או "ביום שני"), חובה עליך להגדיר את שדה ה-executionDate לתאריך של היום (${today}) ואת ה-dueDate ל-${defaultDueDate}.
 9. category חייבת להיות אחת מהקטגוריות המותרות.
-10. זיהוי תאריכים יחסיים וימי שבוע (קריטי): השתמש בתאריך היום (${today}) וביום השבוע הנוכחי (${dayOfWeek}) כעוגן זמן מוחלט!
-    - אם מצוין יום ספציפי בשבוע (למשל "יום חמישי", "ביום שני"), חשב מתמטית מה יהיה התאריך של אותו היום הקרוב ביותר *החל מתאריך היום* והזן אותו בפורמט YYYY-MM-DD בשדה executionDate.
-11. תחום השפעה של מילות זמן: במשפט מפוצל, מילת זמן או יום בשבוע משפיעים אך ורק על הפעולה שהם צמודים אליה פיזית!
-12. מיפוי מילות דחיפות: אם מופיעה המילה "דחוף", "בהול", "מיד" או "עכשיו", קבע את השדה urgency כ-"גבוהה".
+10. זיהוי תאריכים יחסיים: אם מצוין יום ספציפי בשבוע, חשב מה יהיה התאריך של אותו היום הקרוב ביותר *החל מתאריך היום* והזן אותו ב-executionDate.
+11. תחום השפעה של מילות זמן: במשפט מפוצל, מילת זמן משפיעה אך ורק על הפעולה שהיא צמודה אליה פיזית!
+12. מיפוי מילות דחיפות: "דחוף", "בהול", "מיד", "עכשיו" = urgency "גבוהה".
 
 חוק ניסוח אקטיבי:
-13. חובה שכל כותרת משימה (title) תתחיל בשם פועל אקטיבי. אם המשתמשת הזינה רק שם עצם (למשל: "דוח"), הבן את ההקשר והוסף פועל מתאים בעצמך (למשל: "לכתוב דוח").
+13. חובה שכל כותרת משימה (title) תתחיל בשם פועל אקטיבי (למשל: "לכתוב דוח").
 
 דוגמאות חובה ללמידה - פעל בדיוק כך:
 
 קלט: "להזמין בייביסיטר ליום חמישי"
-פלט רצוי (שים לב שיום חמישי מחושב במדויק יחסית לכך שהיום ${dayOfWeek} בתאריך ${today}):
+פלט רצוי (יש זמן מוגדר - לכן התאריך מחושב קדימה):
 {
   "tasks": [
     {
@@ -202,6 +198,33 @@ ${existingTasksText}
   ]
 }
 
+קלט: "לקנות חלב היום בערב וגם דוח למנהלת"
+פלט רצוי (שים לב: למשימת הדוח אין זמן מוגדר, לכן היא מקבלת את תאריך היום!):
+{
+  "tasks": [
+    {
+      "title": "לקנות חלב",
+      "category": "קניות",
+      "executionDate": "${today}",
+      "dueDate": "${defaultDueDate}",
+      "time": "20:00",
+      "urgency": "בינונית",
+      "notes": "",
+      "isDuplicate": false
+    },
+    {
+      "title": "לכתוב דוח למנהלת",
+      "category": "עבודה",
+      "executionDate": "${today}",
+      "dueDate": "${defaultDueDate}",
+      "time": "",
+      "urgency": "בינונית",
+      "notes": "",
+      "isDuplicate": false
+    }
+  ]
+}
+
 מבנה JSON חובה להחזרה:
 {
   "tasks": [
@@ -211,16 +234,19 @@ ${existingTasksText}
       "executionDate": "YYYY-MM-DD",
       "dueDate": "YYYY-MM-DD",
       "time": "HH:MM or empty string",
-      "durationMinutes": 60,
+      "durationMinutes": number,
       "urgency": "נמוכה | בינונית | גבוהה",
       "notes": "string",
-      "isDuplicate": false
+      "isDuplicate": boolean
     }
   ]
 }
 `.trim();
 }
 
+// ==========================================
+// פונקציות עזר (Parse, Normalize, Fallback)
+// ==========================================
 function parseJsonFromModel(rawOutput) {
   const cleaned = String(rawOutput || "")
     .replace(/^```json\s*/i, "")
@@ -293,7 +319,6 @@ function buildLocalFallbackTasks(text, existingTasks = []) {
       isDuplicate
     });
   }
-
   return tasks;
 }
 
@@ -392,11 +417,7 @@ function isSimilar(a, b) {
 }
 
 function normalizeForCompare(value) {
-  return String(value || "")
-    .toLowerCase()
-    .replace(/[^\u0590-\u05ff a-z0-9]/gi, "")
-    .replace(/\s+/g, " ")
-    .trim();
+  return String(value || "").toLowerCase().replace(/[^\u0590-\u05ff a-z0-9]/gi, "").replace(/\s+/g, " ").trim();
 }
 
 function normalizeDuration(value) {
