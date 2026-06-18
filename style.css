@@ -772,36 +772,32 @@ textarea::placeholder {
   font-family: 'Secular One', sans-serif;
   white-space: nowrap;
 }
+
 /* ========================================== */
-/* 📱 התאמות למסכים קטנים (טלפונים ניידים) */
+/* 📱 התאמות למסכים קטנים - גרסה אגרסיבית */
 /* ========================================== */
 @media (max-width: 600px) {
   
-  .task-item, .task-card {
-    padding: 16px 12px;
-  }
-
-  /* כופה על הנתונים להסתדר בטור אחד מתחת לשני */
   .task-meta {
-    display: flex;
-    flex-direction: column; /* זה השינוי! במקום שורה, הם יהיו בטור */
-    gap: 6px;
-    align-items: flex-start;
-    margin-bottom: 12px;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 8px !important;
+    align-items: flex-start !important;
+    margin-bottom: 12px !important;
   }
 
-  /* כופה על התאריכים להסתדר אחד מתחת לשני */
   .task-dates {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    align-items: flex-start; /* מיישר אותם לימין */
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 8px !important;
+    align-items: flex-start !important;
+    margin-top: 8px !important;
   }
 
   .date-badge {
-    font-size: 0.85rem;
-    padding: 6px 12px;
-    width: fit-content; /* דואג שהרקע של התאריך לא יימרח על כל המסך */
+    display: inline-block !important;
+    width: fit-content !important;
+    margin: 0 !important;
   }
 
   .task-actions {
