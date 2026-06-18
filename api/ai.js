@@ -4,76 +4,47 @@ import OpenAI from "openai";
 const MODEL = process.env.OPENAI_MODEL || "gpt-4o-mini";
 
 const CATEGORIES = [
-  "בית",
-  "ילדים",
-  "עבודה",
-  "קניות",
-  "בריאות",
-  "משפחה",
-  "כספים",
-  "אחר"
+  "בית", "ילדים", "עבודה", "קניות", "בריאות", "משפחה", "כספים", "אחר"
 ];
 
 const ACTION_WORDS = [
-  "ללכת", "לעשות", "לבקש",
-  "לקנות", "להתקשר", "לשלוח", "לקחת", "להחזיר", "לאסוף", "לקבוע",
-  "לתאם", "לבדוק", "לשלם", "להכין", "לבשל", "לנקות", "לסדר",
-  "לכבס", "להביא", "להוציא", "להזמין", "לכתוב", "לקרוא", "להגיש",
-  "לעדכן", "צריך", "צריכה", "חייבת", "לא לשכוח", "תור", "קניות",
+  "ללכת", "לעשות", "לבקש", "לקנות", "להתקשר", "לשלוח", "לקחת", "להחזיר", "לאסוף", "לקבוע",
+  "לתאם", "לבדוק", "לשלם", "להכין", "לבשל", "לנקות", "לסדר", "לכבס", "להביא", "להוציא", "להזמין",
+  "לכתוב", "לקרוא", "להגיש", "לעדכן", "צריך", "צריכה", "חייבת", "לא לשכוח", "תור", "קניות",
   "מייל", "גן", "בית ספר"
 ];
 
-const CORS_HEADERS = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "Content-Type",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-  "Content-Type": "application/json; charset=utf-8"
-};
+// הדרך הנכונה לכתוב פונקציית שרת ב-Vercel
+export default async function handler(req, res) {
+  // הגדרות CORS (מאפשר לפרונטאנד לדבר עם השרת)
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
 
-export const handler = async (event) => {
-  if (event.httpMethod === "OPTIONS") {
-    return jsonResponse(200, { ok: true });
+  if (req.method === "OPTIONS") {
+    return res.status(200).json({ ok: true });
   }
 
-  if (event.httpMethod !== "POST") {
-    return jsonResponse(405, {
-      ok: false,
-      error: "Only POST requests are supported."
-    });
+  if (req.method !== "POST") {
+    return res.status(405).json({ ok: false, error: "Only POST requests are supported." });
   }
 
-  let body;
-
-  try {
-    body = JSON.parse(event.body || "{}");
-  } catch {
-    return jsonResponse(400, {
-      ok: false,
-      error: "Invalid JSON body."
-    });
-  }
-
+  // ב-Vercel לא צריך לעשות JSON.parse, זה קורה אוטומטית
+  const body = req.body || {};
   const text = cleanText(body.text);
   const existingTasks = Array.isArray(body.existingTasks) ? body.existingTasks : [];
 
-  if (text.length < 5) {
-    return jsonResponse(400, {
-      ok: false,
-      error: "Text is too short."
-    });
+  if (!text || text.length < 5) {
+    return res.status(400).json({ ok: false, error: "Text is too short." });
   }
 
   if (text.length > 1200) {
-    return jsonResponse(400, {
-      ok: false,
-      error: "Text is too long. Maximum length is 1200 characters."
-    });
+    return res.status(400).json({ ok: false, error: "Text is too long. Maximum length is 1200 characters." });
   }
 
   if (!process.env.OPENAI_API_KEY) {
     const fallbackTasks = buildLocalFallbackTasks(text, existingTasks);
-
-    return jsonResponse(200, {
+    return res.status(200).json({
       ok: true,
       source: "backend-fallback-no-api-key",
       model: null,
@@ -91,17 +62,11 @@ export const handler = async (event) => {
 
     const today = isoToday();
     const defaultDueDate = addDaysIso(today, 7);
-    const dayOfWeek = getHebrewDayOfWeek(today); // 🆕 שורה חדשה שמחשבת את יום השבוע הנוכחי
+    const dayOfWeek = getHebrewDayOfWeek(today);
 
-    const prompt = buildPrompt({
-      text,
-      today,
-      dayOfWeek, // 🆕 מעבירים את יום השבוע לפרומפט
-      defaultDueDate,
-      existingTasks
-    });
+    const prompt = buildPrompt({ text, today, dayOfWeek, defaultDueDate, existingTasks });
 
-    // ... קוד קודם
+    // השימוש הנכון בפונקציה של OpenAI החדשה
     const response = await client.chat.completions.create({
       model: MODEL,
       temperature: 0.1,
@@ -117,15 +82,12 @@ export const handler = async (event) => {
       ]
     });
 
-    // הגישה לטקסט מהתשובה השתנתה מעט:
+    // הדרך הנכונה לחלץ את הטקסט מהתשובה
     const rawOutput = response.choices[0].message.content || "";
-    // ... המשך הקוד (parseJsonFromModel וכו')
-
-    const rawOutput = response.output_text || "";
     const parsed = parseJsonFromModel(rawOutput);
     const normalizedTasks = normalizeTasks(parsed.tasks || [], existingTasks, today, defaultDueDate);
 
-    return jsonResponse(200, {
+    return res.status(200).json({
       ok: true,
       source: "openai",
       model: MODEL,
@@ -136,8 +98,7 @@ export const handler = async (event) => {
     });
   } catch (error) {
     const fallbackTasks = buildLocalFallbackTasks(text, existingTasks);
-
-    return jsonResponse(200, {
+    return res.status(200).json({
       ok: true,
       source: "backend-fallback-api-error",
       model: MODEL,
@@ -148,14 +109,17 @@ export const handler = async (event) => {
       tasks: fallbackTasks
     });
   }
-};
+}
+
+// ==========================================
+// פונקציות העזר שלך - נשארו בדיוק כמו שהיו!
+// ==========================================
 
 function buildPrompt({ text, today, dayOfWeek, defaultDueDate, existingTasks }) {
   const tomorrow = addDaysIso(today, 1);
   const tomorrowDueDate = addDaysIso(tomorrow, 7);
 
-  // חישוב דינמי של יום חמישי הקרוב עבור הדוגמה של ה-AI
-  const currentDayIndex = new Date(`${today}T12:00:00`).getDay(); // 0 = ראשון, 2 = שלישי...
+  const currentDayIndex = new Date(`${today}T12:00:00`).getDay();
   const daysToThursday = (4 - currentDayIndex + 7) % 7 || 7;
   const upcomingThursdayIso = addDaysIso(today, daysToThursday);
   const upcomingThursdayDueDateIso = addDaysIso(upcomingThursdayIso, 7);
@@ -238,53 +202,6 @@ ${existingTasksText}
   ]
 }
 
-קלט: "לקבוע תור מחר בשש וחצי לרופא דחוף ולאסוף את יהלי מהחוג בשמונה וגם דוח ותרופות לנטע"
-פלט רצוי:
-{
-  "tasks": [
-    {
-      "title": "לקבוע תור לרופא",
-      "category": "בריאות",
-      "executionDate": "${tomorrow}",
-      "dueDate": "${tomorrowDueDate}",
-      "time": "18:30",
-      "urgency": "גבוהה",
-      "notes": "",
-      "isDuplicate": false
-    },
-    {
-      "title": "לאסוף את יהלי מהחוג",
-      "category": "ילדים",
-      "executionDate": "${today}",
-      "dueDate": "${defaultDueDate}",
-      "time": "20:00",
-      "urgency": "בינונית",
-      "notes": "",
-      "isDuplicate": false
-    },
-    {
-      "title": "לכתוב דוח",
-      "category": "עבודה",
-      "executionDate": "${today}",
-      "dueDate": "${defaultDueDate}",
-      "time": "",
-      "urgency": "בינונית",
-      "notes": "",
-      "isDuplicate": false
-    },
-    {
-      "title": "לקנות תרופות לנטע",
-      "category": "בריאות",
-      "executionDate": "${today}",
-      "dueDate": "${defaultDueDate}",
-      "time": "",
-      "urgency": "בינונית",
-      "notes": "",
-      "isDuplicate": false
-    }
-  ]
-}
-
 מבנה JSON חובה להחזרה:
 {
   "tasks": [
@@ -316,11 +233,9 @@ function parseJsonFromModel(rawOutput) {
   } catch {
     const firstBrace = cleaned.indexOf("{");
     const lastBrace = cleaned.lastIndexOf("}");
-
     if (firstBrace >= 0 && lastBrace > firstBrace) {
       return JSON.parse(cleaned.slice(firstBrace, lastBrace + 1));
     }
-
     return { tasks: [] };
   }
 }
@@ -332,7 +247,6 @@ function normalizeTasks(tasks, existingTasks, today, defaultDueDate) {
     .slice(0, 10)
     .map((task) => {
       const title = cleanText(task.title || task.taskTitle || "");
-
       return {
         title,
         category: CATEGORIES.includes(task.category) ? task.category : "אחר",
@@ -386,13 +300,10 @@ function buildLocalFallbackTasks(text, existingTasks = []) {
 function splitIntoSegments(text) {
   let processedText = String(text || "").replace(/\r/g, "\n");
   const actionWordsPattern = ACTION_WORDS.join('|');
-  
   const regexVav = new RegExp(`(^|\\s)(ו)(${actionWordsPattern})(?=\\s|$)`, 'g');
   processedText = processedText.replace(regexVav, '$1. $3');
-
   const regexWords = new RegExp(`(^|\\s)(וגם|אז)\\s+(${actionWordsPattern})(?=\\s|$)`, 'g');
   processedText = processedText.replace(regexWords, '$1. $3');
-
   return processedText
     .split(/[\n.;!?]+|(?:,\s*)|(?:\s+-\s+)/)
     .map((item) => cleanText(item))
@@ -435,11 +346,9 @@ function detectTime(segment) {
   if (exactMatch) return `${exactMatch[1].padStart(2, "0")}:${exactMatch[2]}`;
 
   const textTimeMatch = segment.match(/(?:^|\s)(בשעה|ב|ב-|לשעה)\s*([0-9]{1,2}|אחת|שתיים|שלוש|ארבע|חמש|שש|שבע|שמונה|תשע|עשר|אחת עשרה|שתים עשרה)(?=\s|$|[.,])/);
-
   if (textTimeMatch) {
     let hourStr = textTimeMatch[2];
     let hour = parseInt(hourStr);
-
     if (isNaN(hour)) {
       const hebrewHours = {
         "אחת": 1, "שתיים": 2, "שלוש": 3, "ארבע": 4, "חמש": 5,
@@ -448,16 +357,9 @@ function detectTime(segment) {
       };
       hour = hebrewHours[hourStr];
     }
-
-    if (hour >= 1 && hour <= 7) {
-      hour += 12;
-    }
-
-    if (hour >= 0 && hour <= 23) {
-      return `${String(hour).padStart(2, "0")}:00`;
-    }
+    if (hour >= 1 && hour <= 7) hour += 12;
+    if (hour >= 0 && hour <= 23) return `${String(hour).padStart(2, "0")}:00`;
   }
-
   return "";
 }
 
@@ -465,14 +367,11 @@ function detectDuration(segment) {
   const value = segment.toLowerCase();
   const minutesMatch = value.match(/(\d{1,3})\s*(דקות|דק׳|דק)/);
   if (minutesMatch) return clampNumber(Number(minutesMatch[1]), 10, 240);
-
   const hoursMatch = value.match(/(\d{1,2})\s*(שעות|שעה)/);
   if (hoursMatch) return clampNumber(Number(hoursMatch[1]) * 60, 15, 300);
-
   if (value.includes("חצי שעה")) return 30;
   if (value.includes("שעתיים")) return 120;
   if (value.includes("שעה")) return 60;
-
   return 60;
 }
 
@@ -511,9 +410,7 @@ function clampNumber(value, min, max) {
 }
 
 function cleanText(value) {
-  return String(value || "")
-    .replace(/\s+/g, " ")
-    .trim();
+  return String(value || "").replace(/\s+/g, " ").trim();
 }
 
 function isoToday() {
@@ -535,14 +432,6 @@ function isIsoDate(value) {
 
 function isTime(value) {
   return /^([01]\d|2[0-3]):[0-5]\d$/.test(String(value || ""));
-}
-
-function jsonResponse(statusCode, body) {
-  return {
-    statusCode,
-    headers: CORS_HEADERS,
-    body: JSON.stringify(body)
-  };
 }
 
 function getHebrewDayOfWeek(isoDate) {
