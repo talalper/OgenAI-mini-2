@@ -101,14 +101,14 @@ export const handler = async (event) => {
       existingTasks
     });
 
-    const response = await client.responses.create({
+    // ... קוד קודם
+    const response = await client.chat.completions.create({
       model: MODEL,
-      temperature: 0.1, // הורדנו קצת יצירתיות כדי שיצמד לחוקים
-      input: [
+      temperature: 0.1,
+      messages: [
         {
           role: "system",
-          content:
-            "You are an expert Hebrew task-extraction engine. You return only valid JSON. You never add explanations outside JSON."
+          content: "You are an expert Hebrew task-extraction engine. You return only valid JSON. You never add explanations outside JSON."
         },
         {
           role: "user",
@@ -116,6 +116,10 @@ export const handler = async (event) => {
         }
       ]
     });
+
+    // הגישה לטקסט מהתשובה השתנתה מעט:
+    const rawOutput = response.choices[0].message.content || "";
+    // ... המשך הקוד (parseJsonFromModel וכו')
 
     const rawOutput = response.output_text || "";
     const parsed = parseJsonFromModel(rawOutput);
