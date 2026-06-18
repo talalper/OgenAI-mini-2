@@ -774,36 +774,28 @@ textarea::placeholder {
 }
 
 /* ========================================== */
-/* 📱 התאמות למסכים קטנים - גרסה אגרסיבית */
+/* 📱 התאמות למסכים קטנים (טלפונים ניידים) */
 /* ========================================== */
 @media (max-width: 600px) {
   
-  .task-meta {
+  /* מונע מהתגיות להימחץ או לצאת מגבולות המסך ומאפשר להן לרדת שורה */
+  .task-details-chips {
     display: flex !important;
-    flex-direction: column !important;
-    gap: 8px !important;
-    align-items: flex-start !important;
-    margin-bottom: 12px !important;
+    flex-wrap: wrap !important; /* מאפשר גלישה שורה אסתטית */
+    gap: 6px !important; /* ריווח נקי בין התגיות */
+    margin-top: 6px !important;
   }
 
-  .task-dates {
-    display: flex !important;
-    flex-direction: column !important;
-    gap: 8px !important;
-    align-items: flex-start !important;
-    margin-top: 8px !important;
+  /* התאמת גודל התגיות למסך הקטן של הטלפון */
+  .info-chip, .date-chip {
+    font-size: 0.8rem !important; /* טיפה יותר קטן כדי שלא יתפוס חצי מסך */
+    padding: 4px 8px !important; /* ריווח פנימי נעים */
+    white-space: nowrap !important; /* מונע מהטקסט של התגית להישבר באמצע המילה */
   }
 
-  .date-badge {
-    display: inline-block !important;
-    width: fit-content !important;
-    margin: 0 !important;
-  }
-
-  .task-actions {
-    margin-top: 12px;
-    display: flex;
-    justify-content: flex-end;
-    gap: 12px;
+  /* כיווץ קל של כרטיסיית המשימה כולה כדי להרוויח מקום */
+  .task-view-card {
+    padding: 12px 10px !important;
+    gap: 10px !important;
   }
 }
